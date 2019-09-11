@@ -4,6 +4,11 @@ namespace FxSsh.Services
 {
     public class SessionRequestedArgs
     {
+        public SessionRequestedArgs(SessionChannel channel, string command, UserauthArgs userauthArgs)
+            : this(channel, null, command, userauthArgs)
+        {
+        }
+
         public SessionRequestedArgs(SessionChannel channel, string subsystem, string command, UserauthArgs userauthArgs)
         {
             Contract.Requires(channel != null);
