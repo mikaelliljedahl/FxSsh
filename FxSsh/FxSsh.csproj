@@ -12,7 +12,7 @@ This version is a mod on FxSsh that allows password authentication, and basic di
 All credit for this work goes to Aimeast.</Description>
     <PackageId>FxSsh.PwAuth</PackageId>
     <Company>Aimeast, Lirunki</Company>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
 </Project>
