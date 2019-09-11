@@ -81,6 +81,10 @@ namespace FxSsh.Services
                     var msg2 = Message.LoadFrom<PTYRequestMessage>(message);
                     HandleMessage(msg2);
                     break;
+                case "subsystem":
+                    var msg3 = Message.LoadFrom<SubsystemRequestMessage>(message);
+                    HandleMessage(msg3);
+                    break;
                 default:
                     if (message.WantReply)
                         _session.SendMessage(new ChannelFailureMessage
@@ -183,13 +187,27 @@ namespace FxSsh.Services
 
             _session.SendMessage(msg);
         }
-       
+
         private void HandleMessage(PTYRequestMessage message)
         {
             var channel = FindChannelByServerId<SessionChannel>(message.RecipientChannel);
 
             if (message.WantReply)
                 _session.SendMessage(new ChannelSuccessMessage { RecipientChannel = channel.ClientChannelId });
+        }
+
+        private void HandleMessage(SubsystemRequestMessage message)
+        {
+            var channel = FindChannelByServerId<SessionChannel>(message.RecipientChannel);
+
+            if (message.WantReply)
+                _session.SendMessage(new ChannelSuccessMessage { RecipientChannel = channel.ClientChannelId });
+
+            if (CommandOpened != null)
+            {
+                var args = new SessionRequestedArgs(channel, message.SubsystemName, "open", _auth);
+                CommandOpened(this, args);
+            }
         }
 
         private void HandleMessage(CommandRequestMessage message)
@@ -201,7 +219,7 @@ namespace FxSsh.Services
 
             if (CommandOpened != null)
             {
-                var args = new SessionRequestedArgs(channel, message.Command, _auth);
+                var args = new SessionRequestedArgs(channel, null, message.Command, _auth);
                 CommandOpened(this, args);
             }
         }
