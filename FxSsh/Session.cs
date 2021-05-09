@@ -599,7 +599,7 @@ namespace FxSsh
 
         private void HandleMessage(UnimplementedMessage message)
         {
-            SendMessage(message);
+            // ignore. SendMessage(message);
         }
 
         private void HandleMessage(ServiceRequestMessage message)

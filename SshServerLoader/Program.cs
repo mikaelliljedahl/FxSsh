@@ -91,12 +91,37 @@ namespace SshServerLoader
 
         static void service_Userauth(object sender, UserauthArgs e)
         {
-            Console.WriteLine("Client {0} fingerprint: {1}.", e.KeyAlgorithm, e.Fingerprint);
+            if (e is PKUserauthArgs)
+            {
+                var pk = e as PKUserauthArgs;
+                Console.WriteLine("Client {0} fingerprint: {1}.", pk.KeyAlgorithm, pk.Fingerprint);
+            }
+            else if (e is PasswordUserauthArgs)
+            {
+                var pw = e as PasswordUserauthArgs;
+                Console.WriteLine("Client {0} password length: {1}.", pw.Username, pw.Password?.Length);
+            }
 
             e.Result = true;
         }
 
-        static void service_CommandOpened(object sender, CommandRequestedArgs e)
+        static void service_DirectTcpIpReceived(object sender, DirectTcpIpRequestedArgs e)
+        {
+            Console.WriteLine($"Client {e.OriginatorIP}:{e.OriginatorPort} --> {e.TargetIP}:{e.TargetPort}");
+
+            if (e.TargetIP == e.OriginatorIP && e.TargetPort == e.OriginatorPort)
+            {
+                e.Allow = false;
+                e.DenialDescription = "loops not allowed!";
+                e.ReasonCode = ChannelOpenFailureReason.AdministrativelyProhibited;
+            }
+            else
+            {
+                e.Allow = true;
+            }
+        }
+
+        static void service_CommandOpened(object sender, SessionRequestedArgs e)
         {
             Console.WriteLine($"Channel {e.Channel.ServerChannelId} runs {e.ShellType}: \"{e.CommandText}\".");
 
@@ -120,19 +145,9 @@ namespace SshServerLoader
             }
             else if (e.ShellType == "exec")
             {
-                var parser = new Regex(@"(?<cmd>git-receive-pack|git-upload-pack|git-upload-archive) \'/?(?<proj>.+)\.git\'");
-                var match = parser.Match(e.CommandText);
-                var command = match.Groups["cmd"].Value;
-                var project = match.Groups["proj"].Value;
-
-                var git = new GitService(command, project);
-
-                e.Channel.DataReceived += (ss, ee) => git.OnData(ee);
-                e.Channel.CloseReceived += (ss, ee) => git.OnClose();
-                git.DataReceived += (ss, ee) => e.Channel.SendData(ee);
-                git.CloseReceived += (ss, ee) => e.Channel.SendClose(ee);
-
-                git.Start();
+              
+          
+               
             }
             else if (e.ShellType == "subsystem")
             {

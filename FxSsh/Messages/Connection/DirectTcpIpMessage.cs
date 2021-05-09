@@ -22,6 +22,18 @@ namespace FxSsh.Messages.Connection
             Port = reader.ReadUInt32();
             OriginatorIPAddress = reader.ReadString(Encoding.ASCII);
             OriginatorPort = reader.ReadUInt32();
+            /*
+              byte      SSH_MSG_CHANNEL_OPEN
+              string    "direct-tcpip"
+              uint32    sender channel
+              uint32    initial window size
+              uint32    maximum packet size
+              string    host to connect
+              uint32    port to connect
+              string    originator IP address
+              uint32    originator port
+              */
+           
         }
     }
 }

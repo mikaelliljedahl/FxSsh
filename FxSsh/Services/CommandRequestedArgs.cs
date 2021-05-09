@@ -11,14 +11,14 @@ namespace FxSsh.Services
             Contract.Requires(userauthArgs != null);
 
             Channel = channel;
-            ShellType = type;
             CommandText = command;
             AttachedUserauthArgs = userauthArgs;
+            SubSystemName = type;
         }
 
         public SessionChannel Channel { get; private set; }
-        public string ShellType { get; private set; }
         public string CommandText { get; private set; }
+        public string SubSystemName { get; private set; }
         public UserauthArgs AttachedUserauthArgs { get; private set; }
     }
 }

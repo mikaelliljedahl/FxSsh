@@ -2,7 +2,7 @@
 
 namespace FxSsh.Services
 {
-    public class UserauthArgs
+    public abstract class UserauthArgs
     {
         public UserauthArgs(Session session, string username, string keyAlgorithm, string fingerprint, byte[] key)
         {

@@ -200,6 +200,54 @@ namespace FxSsh.Services
             channel.OnClose();
         }
 
+        private void HandleMessage(DirectTcpIpMessage message)
+        {
+            var channel = new DirectTcpIpSessionChannel(
+                this, message,
+                (uint)Interlocked.Increment(ref _serverChannelCounter));
+
+            if (DirectTcpIpReceived != null)
+            {
+                var args = new DirectTcpIpRequestedArgs(channel, message.HostToConnect, message.PortToConnect, message.OriginatorIPAddress, message.OriginatorPort, _auth);
+                DirectTcpIpReceived(this, args);
+
+                if (!args.Allow)
+                {
+                    var fmsg = new ChannelOpenFailureMessage();
+                    fmsg.RecipientChannel = channel.ClientChannelId;
+                    fmsg.Description = args.DenialDescription ?? "not specified";
+                    fmsg.ReasonCode = args.ReasonCode;
+                    _session.SendMessage(fmsg);
+                    return;
+                }
+            }
+
+            try
+            {
+                channel.ConnectToTarget();
+            }
+            catch (Exception e)
+            {
+                var fmsg = new ChannelOpenFailureMessage();
+                fmsg.RecipientChannel = channel.ClientChannelId;
+                fmsg.Description = e.Message;
+                fmsg.ReasonCode = ChannelOpenFailureReason.ConnectFailed;
+                _session.SendMessage(fmsg);
+                return;
+            }
+
+            lock (_locker)
+                _channels.Add(channel);
+
+            var msg = new SessionOpenConfirmationMessage();
+            msg.RecipientChannel = channel.ClientChannelId;
+            msg.SenderChannel = channel.ServerChannelId;
+            msg.InitialWindowSize = channel.ServerInitialWindowSize;
+            msg.MaximumPacketSize = channel.ServerMaxPacketSize;
+
+            _session.SendMessage(msg);
+        }
+
         private void HandleMessage(SessionOpenMessage message)
         {
             HandleChannelOpenMessage(message);
@@ -237,6 +285,28 @@ namespace FxSsh.Services
                 _session.SendMessage(new ChannelSuccessMessage { RecipientChannel = channel.ClientChannelId });
 
             CommandOpened?.Invoke(this, new CommandRequestedArgs(channel, "shell", null, _auth));
+        }
+
+        private void HandleMessage(PTYRequestMessage message)
+        {
+            var channel = FindChannelByServerId<SessionChannel>(message.RecipientChannel);
+
+            if (message.WantReply)
+                _session.SendMessage(new ChannelSuccessMessage { RecipientChannel = channel.ClientChannelId });
+        }
+
+        private void HandleMessage(SubsystemRequestMessage message)
+        {
+            var channel = FindChannelByServerId<SessionChannel>(message.RecipientChannel);
+
+            if (message.WantReply)
+                _session.SendMessage(new ChannelSuccessMessage { RecipientChannel = channel.ClientChannelId });
+
+            if (CommandOpened != null)
+            {
+                var args = new SessionRequestedArgs(channel, message.SubsystemName, "open", _auth);
+                CommandOpened(this, args);
+            }
         }
 
         private void HandleMessage(CommandRequestMessage message)
